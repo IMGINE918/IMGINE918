@@ -1,0 +1,44 @@
+name: AI-Native CI/CD Pipeline
+
+# 面试亮点：将传统的 CI 流升级为 AI-CD，引入了安全扫描和 Python 代码审计。
+# 针对岗位：自动化测试/DevOps 工程师
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+
+    - name: Build and Unit Test (Maven)
+      run: mvn clean test
+      # 面试话术："我的 CI 流程第一步是严格的单元测试，保证业务逻辑的底线。"
+
+    - name: Set up Python for AI Audit
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Run AI-Assisted Code Audit
+      run: |
+        # 模拟执行我们之前写的代码审计脚本
+        python mcp-server/audit_code.py --file src/main/java/com/student/service/StudentStatisticsService.java
+      # 面试话术："我在 Pipeline 中集成了自研的 Python 审计脚本，在合并代码前自动排查安全漏洞和代码异味，实现 DevSecOps。"
+
+    - name: Build Docker Image
+      run: docker build -t student-management:latest .
+      # 面试话术："我习惯将应用容器化，确保开发环境、测试环境和生产环境的一致性。"
