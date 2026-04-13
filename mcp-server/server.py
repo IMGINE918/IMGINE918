@@ -1,184 +1,223 @@
 #!/usr/bin/env python3
 """
-Student Management System MCP Server (v2.0 - Real DB Version)
+Student Management MCP Server.
 
-支持真正的数据库连接和 AI 辅助开发。
+This server exposes a small set of tools for AI clients such as Cursor or
+Claude Desktop. It is intentionally lightweight and rule-based.
 """
 
-from mcp.server import Server
-from mcp.types import Tool, TextContent
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path
+from typing import Any
+
+from dotenv import load_dotenv
+from mcp.server import Server
+from mcp.types import TextContent, Tool
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
-from dotenv import load_dotenv
 
-# 加载环境变量 (从 .env 文件读取数据库连接)
-load_dotenv()
-DB_URL = os.getenv("DB_URL", "mysql+pymysql://root:password@localhost:3306/student_management")
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-# 初始化 MCP Server
-server = Server("student-management-mcp")
+DB_URL = os.getenv(
+    "DB_URL",
+    "mysql+pymysql://student:student123@localhost:3306/student_management",
+)
 
-# 项目根目录
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SRC_ROOT = PROJECT_ROOT / "src" / "main" / "java" / "com" / "student"
 
-# 数据库引擎
+server = Server("student-management-mcp")
+
 try:
     engine = create_engine(DB_URL)
-except Exception as e:
-    print(f"Error creating engine: {e}")
+except Exception as exc:  # pragma: no cover - defensive startup handling
+    print(f"Failed to create database engine: {exc}")
     engine = None
 
-# ----------------- 资源 (Resources) -----------------
+
+def _text(value: str) -> list[TextContent]:
+    return [TextContent(type="text", text=value)]
+
+
+def _json_response(ok: bool, **payload: Any) -> str:
+    return json.dumps({"ok": ok, **payload}, ensure_ascii=False, indent=2, default=str)
+
+
+def _is_read_only_sql(sql: str) -> bool:
+    normalized = sql.strip().lower()
+    allowed = ("select", "show", "describe", "desc", "explain")
+    blocked = ("insert", "update", "delete", "drop", "alter", "truncate", "create")
+    return normalized.startswith(allowed) and not any(token in normalized for token in blocked)
+
+
+def execute_sql_impl(sql: str) -> str:
+    if not engine:
+        return _json_response(ok=False, error="Database engine is not available. Check DB_URL configuration.")
+    if not _is_read_only_sql(sql):
+        return _json_response(ok=False, error="Only read-only SQL statements are allowed.")
+
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text(sql))
+            rows = [dict(zip(result.keys(), row)) for row in result]
+            return _json_response(ok=True, rows=rows, row_count=len(rows))
+    except SQLAlchemyError as exc:
+        return _json_response(ok=False, error=f"SQL execution error: {exc}")
+
+
+def audit_code_impl(file_path: str) -> str:
+    full_path = (SRC_ROOT / file_path).resolve()
+    if not full_path.exists():
+        return _json_response(ok=False, error=f"File not found: {file_path}")
+    if SRC_ROOT not in full_path.parents and full_path != SRC_ROOT:
+        return _json_response(ok=False, error="Only files inside src/main/java/com/student are allowed.")
+
+    content = full_path.read_text(encoding="utf-8")
+    issues: list[str] = []
+
+    if "System.out.println" in content:
+        issues.append("- Prefer structured logging over System.out.println in service code.")
+    if "TODO" in content:
+        issues.append("- Remove or resolve TODO markers before treating this as production-ready.")
+    if "Connection" in content and ".close()" not in content and "try (" not in content:
+        issues.append("- Database resources may not be closed safely.")
+    if "password" in content.lower():
+        issues.append("- Review whether sensitive values are hard-coded.")
+    if "catch (Exception" in content:
+        issues.append("- Avoid overly broad exception handling when a narrower type is possible.")
+
+    if not issues:
+        return _json_response(ok=True, findings=[], summary="No obvious rule-based issues were found.")
+
+    return _json_response(ok=True, findings=issues, summary="Rule-based issues found.")
+
+
+def generate_tutoring_plan_impl(student_name: str, major: str, score: float) -> str:
+    plan = f"""# Targeted Tutoring Plan
+
+Student: {student_name}
+Major: {major}
+Current Score: {score}
+
+Goal:
+- Raise understanding of core weak points within 7 days
+- Build a repeatable review plan before the next assessment
+
+7-Day Plan:
+- Day 1: Review the weakest core concepts in {major}
+- Day 2: Rework missed question types and summarize mistakes
+- Day 3: Complete a guided practice set with explanations
+- Day 4: Run a short AI-assisted mock oral review
+- Day 5: Complete a timed written practice
+- Day 6: Fix remaining weak points and review notes
+- Day 7: Do one final mock assessment and reflection
+
+Advisor Notes:
+- Keep feedback concrete and encouraging
+- Focus on the smallest number of high-impact weak points first
+"""
+    return _json_response(
+        ok=True,
+        student_name=student_name,
+        major=major,
+        score=score,
+        plan_markdown=plan,
+    )
+
 
 @server.list_resources()
 async def list_resources() -> list:
     return [
         {
             "uri": "database://schema",
-            "name": "数据库架构 (Real-Time)",
-            "description": "系统当前的数据库结构信息",
+            "name": "Database Status",
+            "description": "Connection status and current database name.",
             "mimeType": "application/json",
         }
     ]
 
+
 @server.read_resource()
 async def read_resource(uri: str) -> str:
-    if uri == "database://schema" and engine:
-        # 简单模拟返回架构，实际可以从引擎读取
-        return json.dumps({"status": "connected", "database": engine.url.database}, indent=2)
-    return "Resource not found or database not connected"
+    if uri != "database://schema":
+        return _json_response(ok=False, error="Resource not found.")
+    if not engine:
+        return _json_response(ok=False, status="disconnected")
+    return _json_response(ok=True, status="connected", database=engine.url.database)
 
-# ----------------- 工具 (Tools) -----------------
 
 @server.list_tools()
 async def list_tools() -> list[Tool]:
     return [
         Tool(
             name="execute_query",
-            description="执行 SQL 查询并返回结果 (只读)",
+            description="Run a read-only SQL query and return JSON results.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "sql": {"type": "string", "description": "要执行的 SQL 语句"}
+                    "sql": {"type": "string", "description": "A read-only SQL statement."}
                 },
-                "required": ["sql"]
-            }
+                "required": ["sql"],
+            },
         ),
         Tool(
             name="audit_java_code",
-            description="对本地 Java 文件进行代码质量和业务逻辑审计",
+            description="Run a lightweight rule-based audit on a local Java file.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "file_path": {"type": "string", "description": "Java 文件路径"}
+                    "file_path": {
+                        "type": "string",
+                        "description": "Relative path under src/main/java/com/student",
+                    }
                 },
-                "required": ["file_path"]
-            }
+                "required": ["file_path"],
+            },
         ),
         Tool(
             name="generate_tutoring_plan",
-            description="为不及格学生自动生成针对性的 AI 补习计划",
+            description="Generate a simple tutoring plan for a student.",
             inputSchema={
                 "type": "object",
                 "properties": {
-                    "student_name": {"type": "string", "description": "学生姓名"},
-                    "major": {"type": "string", "description": "专业名称"},
-                    "score": {"type": "number", "description": "当前成绩"}
+                    "student_name": {"type": "string"},
+                    "major": {"type": "string"},
+                    "score": {"type": "number"},
                 },
-                "required": ["student_name", "major", "score"]
-            }
-        )
+                "required": ["student_name", "major", "score"],
+            },
+        ),
     ]
+
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     if name == "execute_query":
-        # ... (原有逻辑)
-        pass
-    
-    elif name == "audit_java_code":
-        # ... (原有逻辑)
-        pass
+        return _text(execute_sql_impl(arguments.get("sql", "")))
+    if name == "audit_java_code":
+        return _text(audit_code_impl(arguments.get("file_path", "")))
+    if name == "generate_tutoring_plan":
+        return _text(
+            generate_tutoring_plan_impl(
+                arguments.get("student_name", "Unknown"),
+                arguments.get("major", "Unknown"),
+                float(arguments.get("score", 0)),
+            )
+        )
+    return _text(_json_response(ok=False, error=f"Unknown tool: {name}"))
 
-    elif name == "generate_tutoring_plan":
-        name = arguments.get("student_name")
-        major = arguments.get("major")
-        score = arguments.get("score")
-        return [TextContent(type="text", text=generate_tutoring_plan_impl(name, major, score))]
-    
-    return [TextContent(type="text", text=f"Unknown tool: {name}")]
 
-# ----------------- 逻辑实现 (Implementations) -----------------
-
-def generate_tutoring_plan_impl(name: str, major: str, score: float) -> str:
-    """生成补习计划的 Prompt 模板"""
-    plan = f"""
-# 🎓 针对性补习计划 (Targeted Tutoring Plan)
-**学生**：{name}  **专业**：{major}  **当前成绩**：{score} (RED ALERT)
-
-## 🎯 补习目标：
-在 7 天内将核心知识点从 0 补齐到 60+。
-
-## 📅 七天冲刺安排：
-- **Day 1-2: 基础扫盲**
-  重点补齐 {major} 专业中占比 40% 的最基础概念。
-- **Day 3-4: 错题精讲**
-  利用 AI 模拟面试，针对典型易错题进行专项训练。
-- **Day 5: 考点押题**
-  结合往年考纲，模拟 2 套试卷。
-- **Day 6: 心理疏导与查缺补漏**
-  与 AI 辅导员进行一次全真考场压力模拟。
-- **Day 7: 正式考核**
-
-## 💡 给辅导员的建议：
-该生目前状态处于 [低动力/高焦虑] 状态，建议在约谈时多给予正向激励。
-
----
-*Generated by Student Management AI System.*
-"""
-    return plan
-
-def execute_sql_impl(sql: str) -> str:
-    if not engine:
-        return "数据库未连接，请检查 .env 配置。"
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(text(sql))
-            rows = [dict(zip(result.keys(), row)) for row in result]
-            return json.dumps(rows, ensure_ascii=False, indent=2, default=str)
-    except SQLAlchemyError as e:
-        return f"SQL Error: {str(e)}"
-
-def audit_code_impl(file_path: str) -> str:
-    # 逻辑简化：实际会读取文件并结合 LLM 审计
-    full_path = SRC_ROOT / file_path
-    if not full_path.exists():
-        return f"错误：未找到文件 {file_path}"
-    
-    with open(full_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    # 模拟审计结果
-    issues = []
-    if "age" in content and "max" not in content:
-        issues.append("⚠️ 年龄字段缺少边界值验证。")
-    if "Connection" in content and ".close()" not in content:
-        issues.append("❌ 数据库连接可能未正确关闭，存在内存泄漏风险。")
-    
-    return "代码审计完成：\n" + ("\n".join(issues) if issues else "✅ 未发现明显业务逻辑漏洞。")
-
-# ----------------- 启动 -----------------
-
-async def main():
-    import asyncio
+async def main() -> None:
     from mcp.server.stdio import stdio_server
+
     async with stdio_server() as (read_stream, write_stream):
         await server.run(read_stream, write_stream, server.create_initialization_options())
 
+
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(main())
