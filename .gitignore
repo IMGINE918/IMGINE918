@@ -9,8 +9,10 @@ build/
 target/
 dist/
 .gradle/
-.mvn/
 .vscode/
+.m2/
+.tools/
+*.tsbuildinfo
 
 # Node
 node_modules/
@@ -36,3 +38,5 @@ coverage/
 # Misc
 .env
 **/.git
+!.mvn/
+!.mvn/maven.config

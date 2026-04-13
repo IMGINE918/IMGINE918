@@ -1,88 +1,127 @@
-# 🚀 Student Management System: AI-Native Edition
+# Student Management System: AI-Native Practice Repo
 
-> **"You + AI > A Team"** —— 展示 AI 原生开发者的系统编排与架构能力。
+This repository is a mixed practice workspace around:
 
----
+- Java student-management domain modeling
+- AI-assisted development workflow
+- MCP server integration for Cursor / Claude
+- Dockerized local services
 
-## 🌟 项目简介
+It is best understood as an `AI-native engineering practice repo`, not a fully finished production application.
 
-这是一个基于 **Java 17**、**Spring Boot 3.3**、**React** 和 **MCP (Model Context Protocol)** 构建的高级学生管理系统。
-本项目旨在展示如何通过 **AI 原生开发模式 (Vibe Coding)**，将传统 CRUD 系统升级为具备**主动预警、语义审计、容器化编排**能力的智能管理平台。
+## Docs
 
----
+- [docs/PROJECT_SCOPE.md](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/docs/PROJECT_SCOPE.md)
+- [docs/SETUP.md](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/docs/SETUP.md)
+- [docs/ARCHITECTURE.md](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/docs/ARCHITECTURE.md)
 
-## 🛠️ 技术栈 (Tech Stack)
+## What Is Runnable Today
 
-### **核心后端 (Java Ecosystem)**
-- ![Java](https://img.shields.io/badge/Java-17+-orange?style=flat-square&logo=java) **Java 17+**: 使用 Record 类、Stream API 及最新的 Sealed Classes。
-- ![Spring Boot](https://img.shields.io/badge/SpringBoot-3.3-green?style=flat-square&logo=springboot) **Spring Boot**: 现代后端架构的核心。
-- ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?style=flat-square&logo=mysql) **MySQL**: 关系型数据存储。
+The most complete runnable part is:
 
-### **AI 原生增强 (AI-Native Integration)**
-- ![MCP](https://img.shields.io/badge/Protocol-MCP-purple?style=flat-square) **MCP (Model Context Protocol)**: 自研 MCP Server，打通 AI 与本地数据库的实时通讯。
-- ![Python](https://img.shields.io/badge/Audit-Python-yellow?style=flat-square&logo=python) **Python Audit**: 自动化 AI 代码审计脚本，实现 DevSecOps。
-- ![RAG](https://img.shields.io/badge/Search-RAG-cyan?style=flat-square) **RAG 语义搜索**: 知识库向量化处理，支持语义级技术问答。
+- [mcp-server](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/mcp-server)
 
-### **前端与 DevOps**
-- ![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react) **React + Tailwind CSS v4**: 极速响应式管理看板。
-- ![Docker](https://img.shields.io/badge/Docker-Enabled-blue?style=flat-square&logo=docker) **Docker Compose**: 一键编排 MySQL、Redis 和应用容器。
-- ![CI/CD](https://img.shields.io/badge/CI/CD-GitHub_Actions-lightgrey?style=flat-square&logo=githubactions) **GitHub Actions**: 自动化构建、单元测试与 AI 审计。
+It provides a lightweight MCP server that can:
 
----
+- expose database connection status as a resource
+- run read-only SQL queries
+- audit local Java files with simple rule-based checks
+- generate tutoring plans for at-risk students
 
-## 🧠 核心 AI 功能亮点
+Infrastructure available in this repo:
 
-### 1. 智能学情预警闭环 (Early Warning Service)
-- **主动感知**：系统每录入一笔成绩，自动触发 `EarlyWarningService` 风险扫描。
-- **AI 决策支持**：集成 `generate_tutoring_plan` 工具，为及格边缘学生一键生成 7 天“救火式”补习方案。
+- MySQL
+- Redis
+- MCP server container
 
-### 2. 开发者效能工具链 (Developer Experience)
-- **MCP Server v2.0**: 让 AI (Cursor/Claude) 直接理解业务逻辑，实现“自然语言写 SQL”。
-- **架构级审计**: 在 CI 流中集成 `audit_code.py`，自动拦截不规范代码和安全漏洞。
+## What Is In Progress
 
----
+These parts are still practice code or showcase material rather than a complete deployable product:
 
-## 📁 项目结构
+- [src](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/src)
+- [frontend](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/frontend)
 
-```bash
-Student-Management/
-├── 🏫 src/main/java/           # Java 17 核心业务逻辑 (DDD 架构)
-├── 🤖 mcp-server/             # 自研 MCP Server (Python 实现)
-├── 🎨 frontend/               # React + Tailwind v4 管理看板
-├── 🧪 scripts/                # AI 代码审计与向量化脚本
-├── 🐳 docker-compose.yml       # 容器编排配置
-└── 🚀 .github/workflows/       # AI-CD 自动化流
+These parts are learning and practice material:
+
+- [StudentSystem](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/StudentSystem)
+- [JavaLearningDay1](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/JavaLearningDay1)
+- [JavaOOP_Lesson01](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/JavaOOP_Lesson01)
+- [ruanjian2ban](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/ruanjian2ban)
+
+## Repository Structure
+
+```text
+.
+|-- src/                  Java domain code and service logic
+|-- frontend/             React UI experiments
+|-- mcp-server/           Python MCP server
+|-- StudentSystem/        Java basic student system practice
+|-- JavaLearningDay1/     Java beginner exercises
+|-- JavaOOP_Lesson01/     Java OOP exercises
+|-- docker-compose.yml    Local infrastructure for practice
+`-- Dockerfile            MCP server image definition
 ```
 
----
+## Quick Start
 
-## 🚀 快速启动
+### Option 1: Run the MCP server locally
 
-1. **配置环境**：
-   ```bash
-   # 运行部署脚本安装 MCP 环境
-   cd mcp-server
-   powershell .\deploy.ps1
-   ```
-2. **启动数据库与应用**：
-   ```bash
-   docker-compose up -d
-   ```
-3. **关联 AI (Cursor/Claude)**：
-   在 AI 客户端配置 MCP Server 路径，开启 **Vibe Coding** 模式。
+```powershell
+cd mcp-server
+powershell .\deploy.ps1
+.\venv\Scripts\python.exe .\server.py
+```
 
----
+### Option 2: Run local services with Docker
 
-## 📊 开发者语录
+```powershell
+Copy-Item .env.example .env
+docker compose up --build
+```
 
-> "我把自己定位为**系统的导演和审稿人**，AI 是我高效的执行团队。我的价值在于**架构设计、风险把控和复杂的业务逻辑拆解**。" —— **Zheng Hanping**
+This starts:
 
----
+- MySQL on `3306`
+- Redis on `6379`
+- MCP server on stdio inside the container
 
-## 📧 联系方式
+## Environment Setup
 
-- **GitHub**: [IMGINE918](https://github.com/IMGINE918)
-- **Email**: zhenghanping@example.com
+Use [.env.example](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/.env.example) as the template.
 
----
-*Generated by Gemini CLI AI Assistant - 2026-03-06*
+Important:
+
+- never commit a real `.env`
+- keep API keys and database passwords local only
+
+## Cursor / Claude Learning Angle
+
+If you are reading this repo to learn AI-native development, start here:
+
+1. [docs/PROJECT_SCOPE.md](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/docs/PROJECT_SCOPE.md)
+2. [mcp-server/server.py](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/mcp-server/server.py)
+3. [mcp-server/deploy.ps1](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/mcp-server/deploy.ps1)
+4. [src/main/java/com/student/service](C:/Users/郑寒萍/GitHubProjects/Home/IMGINE918-profile/src/main/java/com/student/service)
+
+What this repo demonstrates:
+
+- humans define architecture and guardrails
+- AI helps implement and inspect
+- MCP gives AI structured access to local project context
+
+## Current Status
+
+This repo intentionally keeps learning materials and practice code together.
+
+That makes it useful for study, but it also means:
+
+- some directories are exercises
+- some are prototypes
+- only part of the repo is production-like
+
+## Suggested Next Improvements
+
+- keep learning directories stable and separate from product work
+- add real tests for `mcp-server`
+- add a proper frontend app shell
+- turn Java backend code into a standalone buildable service
